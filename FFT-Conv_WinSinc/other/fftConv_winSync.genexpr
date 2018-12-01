@@ -1,0 +1,259 @@
+fft_1(buf_1, buf_2, buf_3, fftSize, inSig, mCount){
+	
+	Data input(8192, 1);
+	Data REX_1(8192, 1);
+	Data IMX_1(8192, 1);
+	Data REX_1inv(8192, 1);
+	Data IMX_1inv(8192, 1);
+	Data REX_1cnv(8192, 1);
+	Data IMX_1cnv(8192, 1);
+	
+	Delay delayBuf(8192);
+	
+	delayBuf.write(inSig);
+	
+	bufDiv2 = fftSize/2;
+	
+	if(mCount == 0){
+		
+		// pad 0
+		for(i=0; i<fftSize; i+=1){
+			if(i<bufDiv2){
+				poke(input, delayBuf.read((bufDiv2-1)-i), i, 0);
+			}
+			else{
+				poke(input, 0, i, 0);
+			}
+		}
+		
+		// bit-rev sort
+		for(i=0; i<fftSize; i+=1){
+			poke(REX_1, peek(input, peek(buf_2, i, 0), 0), i, 0);
+			poke(IMX_1, 0, i, 0);
+		}
+		
+		// FFT
+		for(size=2; size<=fftSize; size*=2){
+			halfsize = size / 2;
+			tablestep = fftSize / size;
+			for(i=0; i<fftSize; i+=size){
+				k = 0;
+				for(j=i; j<i+halfsize; j+=1){		
+					l = j + halfsize;
+					tpre =  peek(REX_1, l, 0)*peek(buf_2, k, 1) + peek(IMX_1, l, 0)*peek(buf_2, k, 2);
+					tpim =  -peek(REX_1, l, 0)*peek(buf_2, k, 2) + peek(IMX_1, l, 0)*peek(buf_2, k, 1);
+					k = k + tablestep;
+					
+					poke(REX_1, (peek(REX_1, j, 0)-tpre), l, 0);
+					poke(IMX_1, (peek(IMX_1, j, 0)-tpim), l, 0);
+					
+					poke(REX_1, (peek(REX_1, j, 0)+tpre), j, 0);
+					poke(IMX_1, (peek(IMX_1, j, 0)+tpim), j, 0);
+				}	
+			}
+		}
+		
+		// FFT Convolution
+		for(i=0; i<bufDiv2; i+=1){
+			tpre = peek(REX_1, i, 0)*peek(buf_3, i, 0) - peek(IMX_1, i, 0)*peek(buf_3, i, 1);
+			tpim = peek(IMX_1, i, 0)*peek(buf_3, i, 0) + peek(REX_1, i, 0)*peek(buf_3, i, 1);
+			
+			poke(REX_1cnv, tpre, i, 0);
+			poke(IMX_1cnv, tpim, i, 0);
+		}
+		
+		// manage negative Freq
+		for(i=bufDiv2+1; i<fftSize; i+=1){
+			poke(REX_1cnv,  peek(REX_1cnv, fftSize-i, 0), i);
+			poke(IMX_1cnv, -peek(IMX_1cnv, fftSize-i, 0), i);
+		}
+			
+		
+		// normalize and bit Rev for IFFT
+		for(i=0; i<fftSize; i+=1){
+			poke(REX_1inv, peek(REX_1cnv, peek(buf_2, i, 0), 0)/fftSize, i, 0);
+			poke(IMX_1inv, peek(IMX_1cnv, peek(buf_2, i, 0), 0)/fftSize, i, 0);
+		}
+		
+		// IFFT
+		for(size=2; size<=fftSize; size*=2){
+			halfsize = size / 2;
+			tablestep = fftSize / size;
+			for(i=0; i<fftSize; i+=size){
+				k = 0;
+				for(j=i; j<i+halfsize; j+=1){		
+					l = j + halfsize;
+					tpre =  peek(REX_1inv, l, 0)*peek(buf_2, k, 1) - peek(IMX_1inv, l, 0)*peek(buf_2, k, 2);
+					tpim =  peek(REX_1inv, l, 0)*peek(buf_2, k, 2) + peek(IMX_1inv, l, 0)*peek(buf_2, k, 1);
+					k = k + tablestep;
+					
+					poke(REX_1inv, (peek(REX_1inv, j, 0)-tpre), l, 0);
+					poke(IMX_1inv, (peek(IMX_1inv, j, 0)-tpim), l, 0);
+					
+					poke(REX_1inv, (peek(REX_1inv, j, 0)+tpre), j, 0);
+					poke(IMX_1inv, (peek(IMX_1inv, j, 0)+tpim), j, 0);
+				}	
+			}
+		}
+	}
+	return peek(REX_1inv, mCount, 0);
+}
+
+fft_2(buf_1, buf_2, buf_3, fftSize, inSig, mCount){
+	
+	Data input(8192, 1);
+	Data REX_2(8192, 1);
+	Data IMX_2(8192, 1);
+	Data REX_2inv(8192, 1);
+	Data IMX_2inv(8192, 1);
+	Data REX_2cnv(8192, 1);
+	Data IMX_2cnv(8192, 1);
+	
+	Delay delayBuf(8192);
+	
+	delayBuf.write(inSig);
+	
+	bufDiv2 = fftSize/2;
+	
+	if(mCount == 0){
+		
+		// pad 0
+		for(i=0; i<fftSize; i+=1){
+			if(i<bufDiv2){
+				poke(input, delayBuf.read((bufDiv2-1)-i), i, 0);
+			}
+			else{
+				poke(input, 0, i, 0);
+			}
+		}
+		
+		// bit-rev sort
+		for(i=0; i<fftSize; i+=1){
+			poke(REX_2, peek(input, peek(buf_2, i, 0), 0), i, 0);
+			poke(IMX_2, 0, i, 0);
+		}
+		
+		// FFT
+		for(size=2; size<=fftSize; size*=2){
+			halfsize = size / 2;
+			tablestep = fftSize / size;
+			for(i=0; i<fftSize; i+=size){
+				k = 0;
+				for(j=i; j<i+halfsize; j+=1){		
+					l = j + halfsize;
+					tpre =  peek(REX_2, l, 0)*peek(buf_2, k, 1) + peek(IMX_2, l, 0)*peek(buf_2, k, 2);
+					tpim =  -peek(REX_2, l, 0)*peek(buf_2, k, 2) + peek(IMX_2, l, 0)*peek(buf_2, k, 1);
+					k = k + tablestep;
+					
+					poke(REX_2, (peek(REX_2, j, 0)-tpre), l, 0);
+					poke(IMX_2, (peek(IMX_2, j, 0)-tpim), l, 0);
+					
+					poke(REX_2, (peek(REX_2, j, 0)+tpre), j, 0);
+					poke(IMX_2, (peek(IMX_2, j, 0)+tpim), j, 0);
+				}	
+			}
+		}
+		
+		// FFT Convolution
+		for(i=0; i<bufDiv2; i+=1){
+			tpre = peek(REX_2, i, 0)*peek(buf_3, i, 0) - peek(IMX_2, i, 0)*peek(buf_3, i, 1);
+			tpim = peek(IMX_2, i, 0)*peek(buf_3, i, 0) + peek(REX_2, i, 0)*peek(buf_3, i, 1);
+			
+			poke(REX_2cnv, tpre, i, 0);
+			poke(IMX_2cnv, tpim, i, 0);
+		}
+		
+		// manage negative Freq
+		for(i=bufDiv2+1; i<fftSize; i+=1){
+			poke(REX_2cnv,  peek(REX_2cnv, fftSize-i, 0), i);
+			poke(IMX_2cnv, -peek(IMX_2cnv, fftSize-i, 0), i);
+		}
+			
+		
+		// normalize and bit Rev for IFFT
+		for(i=0; i<fftSize; i+=1){
+			poke(REX_2inv, peek(REX_2cnv, peek(buf_2, i, 0), 0)/fftSize, i, 0);
+			poke(IMX_2inv, peek(IMX_2cnv, peek(buf_2, i, 0), 0)/fftSize, i, 0);
+		}
+		
+		// IFFT
+		for(size=2; size<=fftSize; size*=2){
+			halfsize = size / 2;
+			tablestep = fftSize / size;
+			for(i=0; i<fftSize; i+=size){
+				k = 0;
+				for(j=i; j<i+halfsize; j+=1){		
+					l = j + halfsize;
+					tpre =  peek(REX_2inv, l, 0)*peek(buf_2, k, 1) - peek(IMX_2inv, l, 0)*peek(buf_2, k, 2);
+					tpim =  peek(REX_2inv, l, 0)*peek(buf_2, k, 2) + peek(IMX_2inv, l, 0)*peek(buf_2, k, 1);
+					k = k + tablestep;
+					
+					poke(REX_2inv, (peek(REX_2inv, j, 0)-tpre), l, 0);
+					poke(IMX_2inv, (peek(IMX_2inv, j, 0)-tpim), l, 0);
+					
+					poke(REX_2inv, (peek(REX_2inv, j, 0)+tpre), j, 0);
+					poke(IMX_2inv, (peek(IMX_2inv, j, 0)+tpim), j, 0);
+				}	
+			}
+		}
+	}
+	return peek(REX_2inv, mCount, 0);
+}
+
+set_winSync(buf_winSync, fc, fftSize, buf_1, buf_2){
+	// init
+	Data input(8192, 1);
+	Data REX(8192, 1);
+	Data IMX(8192, 1);
+	
+	bufDiv2 = fftSize/2;
+	k = 0.25;
+	val = 0;
+	
+	for(i=0; i<fftSize; i+=1){
+		if(i == bufDiv2/2){
+			val = TWOPI*fc*k;
+		}
+		else if(i<bufDiv2){
+			val = (0.42 - 0.5*cos(TWOPI*i/bufDiv2)+0.08*cos(2*TWOPI*i/bufDiv2))*k*sin(TWOPI*fc*(i-bufDiv2/2))/(i-bufDiv2/2);
+		}
+		else{
+			val = 0;
+		}
+		poke(input, val, i, 0);
+	}
+		
+	// bit-rev sort
+	for(i=0; i<fftSize; i+=1){
+		poke(REX, peek(input, peek(buf_2, i, 0), 0), i , 0);
+		poke(IMX, 0, i, 0);
+	}
+	
+	// FFT
+	for(size=2; size<=fftSize; size*=2){
+		halfsize = size / 2;
+		tablestep = fftSize / size;
+		for(i=0; i<fftSize; i+=size){
+			k = 0;
+			for(j=i; j<i+halfsize; j+=1){		
+				l = j + halfsize;
+				tpre =  peek(REX, l, 0)*peek(buf_2, k, 1) + peek(IMX, l, 0)*peek(buf_2, k, 2);
+				tpim =  -peek(REX, l, 0)*peek(buf_2, k, 2) + peek(IMX, l, 0)*peek(buf_2, k, 1);
+				k = k + fftSize/size;
+				
+				poke(REX, (peek(REX, j, 0)-tpre), l, 0);
+				poke(IMX, (peek(IMX, j, 0)-tpim), l, 0);
+				
+				poke(REX, (peek(REX, j, 0)+tpre), j, 0);
+				poke(IMX, (peek(IMX, j, 0)+tpim), j, 0);
+			}	
+		}
+	}
+	
+	for(i=0; i<fftSize; i+=1){
+		poke(buf_winSync, peek(REX, i, 0), i, 0);
+		poke(buf_winSync, peek(IMX, i, 0), i, 1);
+	} 
+		
+	return 0;
+}
