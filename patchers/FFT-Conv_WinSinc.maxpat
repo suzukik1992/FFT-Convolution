@@ -4,13 +4,13 @@
 		"appversion" : 		{
 			"major" : 8,
 			"minor" : 0,
-			"revision" : 0,
+			"revision" : 4,
 			"architecture" : "x64",
 			"modernui" : 1
 		}
 ,
 		"classnamespace" : "box",
-		"rect" : [ 295.0, 266.0, 596.0, 750.0 ],
+		"rect" : [ 162.0, -1494.0, 1559.0, 1420.0 ],
 		"bglocked" : 0,
 		"openinpresentation" : 0,
 		"default_fontsize" : 12.0,
@@ -120,12 +120,12 @@
 					"patching_rect" : [ 44.0, 279.463958740234375, 50.0, 22.0 ],
 					"saved_attribute_attributes" : 					{
 						"valueof" : 						{
-							"parameter_shortname" : "number",
 							"parameter_type" : 0,
 							"parameter_longname" : "number",
 							"parameter_initial_enable" : 1,
 							"parameter_mmax" : 0.5,
-							"parameter_initial" : [ 0.5 ]
+							"parameter_initial" : [ 0.5 ],
+							"parameter_shortname" : "number"
 						}
 
 					}
@@ -184,7 +184,6 @@
 					"patching_rect" : [ 21.0, 133.0, 38.0, 37.0 ],
 					"saved_attribute_attributes" : 					{
 						"valueof" : 						{
-							"parameter_shortname" : "number",
 							"parameter_type" : 0,
 							"parameter_unitstyle" : 3,
 							"parameter_mmin" : 10.0,
@@ -192,7 +191,8 @@
 							"parameter_longname" : "live.dial",
 							"parameter_initial_enable" : 1,
 							"parameter_mmax" : 10000.0,
-							"parameter_initial" : [ 60.0 ]
+							"parameter_initial" : [ 60.0 ],
+							"parameter_shortname" : "number"
 						}
 
 					}
@@ -230,13 +230,13 @@
 						"appversion" : 						{
 							"major" : 8,
 							"minor" : 0,
-							"revision" : 0,
+							"revision" : 4,
 							"architecture" : "x64",
 							"modernui" : 1
 						}
 ,
 						"classnamespace" : "dsp.gen",
-						"rect" : [ 925.0, 266.0, 643.0, 750.0 ],
+						"rect" : [ 832.0, -1708.0, 1309.0, 1526.0 ],
 						"bglocked" : 0,
 						"openinpresentation" : 0,
 						"default_fontsize" : 12.0,
@@ -265,7 +265,7 @@
 						"subpatcher_template" : "",
 						"boxes" : [ 							{
 								"box" : 								{
-									"code" : "require(\"fftConv_winSync.genexpr\");\r\n\r\nBuffer buf_256samp(\"butterfly_256samp\");\r\nBuffer buf_512samp(\"butterfly_512samp\");\r\nBuffer buf_1024samp(\"butterfly_1024samp\");\r\nBuffer buf_2048samp(\"butterfly_2048samp\");\r\nBuffer buf_4096samp(\"butterfly_4096samp\");\r\nBuffer buf_8192samp(\"butterfly_8192samp\");\r\nBuffer buf_winSync_js(\"windowSyncBuf\");\r\n\r\nParam bufSize(256);\r\nParam fc(0);\r\n\r\nData buf_winSync(512, 2);\r\n\r\nDelay del_mCount(8196);\r\n\r\n// master clock\r\nmCount_1, mTrg, mNum = counter(1, 0, bufSize*2);\r\ndel_mCount.write(mCount_1);\r\nmCount_2 = del_mCount.read(bufSize);\r\n\r\n\r\nfftSize = 2*bufSize;\r\nif(change(fc) != 0){\r\n\tset_winSync(buf_winSync, fc, fftSize, buf_256samp, buf_512samp);\r\n}\r\n\r\nfft1 = fft_1(buf_256samp, buf_512samp, buf_winSync, fftSize, in1, mCount_1);\r\nfft2 = fft_2(buf_256samp, buf_512samp, buf_winSync, fftSize, in1, mCount_2);\r\nout1 = fft1 + fft2;",
+									"code" : "fft(buf_bitRev, buf_kernel, fftSize, inSig, mCount, buf_store, buf_REX, buf_IMX){\n\t\t\n\tDelay delayBuf(samplerate*10);\n\tdelayBuf.write(inSig);\n\t\n\tbufDiv2 = fftSize/2;\n\t\n\tif(mCount == 0){\n\t\t\n\t\t// pad 0\n\t\tfor(i=0; i<fftSize; i+=1){\n\t\t\tif(i<bufDiv2){\n\t\t\t\tpoke(buf_store, delayBuf.read((bufDiv2-1)-i), i, 0);\n\t\t\t}\n\t\t\telse{\n\t\t\t\tpoke(buf_store, 0, i, 0);\n\t\t\t}\n\t\t}\n\t\t\n\t\t// bit-rev sort\n\t\tfor(i=0; i<fftSize; i+=1){\n\t\t\tpoke(buf_REX, peek(buf_store, peek(buf_bitRev, i, 0), 0), i, 0);\n\t\t\tpoke(buf_IMX, 0, i, 0);\n\t\t}\n\t\t\n\t\t// FFT\n\t\tfor(size=2; size<=fftSize; size*=2){\n\t\t\thalfsize = size / 2;\n\t\t\ttablestep = fftSize / size;\n\t\t\tfor(i=0; i<fftSize; i+=size){\n\t\t\t\tk = 0;\n\t\t\t\tfor(j=i; j<i+halfsize; j+=1){\t\t\n\t\t\t\t\tl = j + halfsize;\n\t\t\t\t\ttpre =  peek(buf_REX, l, 0)*peek(buf_bitRev, k, 1) + peek(buf_IMX, l, 0)*peek(buf_bitRev, k, 2);\n\t\t\t\t\ttpim =  -peek(buf_REX, l, 0)*peek(buf_bitRev, k, 2) + peek(buf_IMX, l, 0)*peek(buf_bitRev, k, 1);\n\t\t\t\t\tk = k + tablestep;\n\t\t\t\t\t\n\t\t\t\t\tpoke(buf_REX, (peek(buf_REX, j, 0)-tpre), l, 0);\n\t\t\t\t\tpoke(buf_IMX, (peek(buf_IMX, j, 0)-tpim), l, 0);\n\t\t\t\t\t\n\t\t\t\t\tpoke(buf_REX, (peek(buf_REX, j, 0)+tpre), j, 0);\n\t\t\t\t\tpoke(buf_IMX, (peek(buf_IMX, j, 0)+tpim), j, 0);\n\t\t\t\t}\t\n\t\t\t}\n\t\t}\n\t\t\n\t\t// FFT Convolution\n\t\tfor(i=0; i<bufDiv2; i+=1){\n\t\t\ttpre = peek(buf_REX, i, 0)*peek(buf_kernel, i, 0) - peek(buf_IMX, i, 0)*peek(buf_kernel, i, 1);\n\t\t\ttpim = peek(buf_IMX, i, 0)*peek(buf_kernel, i, 0) + peek(buf_REX, i, 0)*peek(buf_kernel, i, 1);\n\t\t\t\n\t\t\tpoke(buf_REX, tpre, i, 2);\n\t\t\tpoke(buf_IMX, tpim, i, 2);\n\t\t}\n\t\t\n\t\t// manage negative Freq\n\t\tfor(i=bufDiv2+1; i<fftSize; i+=1){\n\t\t\tpoke(buf_REX,  peek(buf_REX, fftSize-i, 2), i, 2);\n\t\t\tpoke(buf_IMX, -peek(buf_IMX, fftSize-i, 2), i, 2);\n\t\t}\n\t\t\t\n\t\t\n\t\t// normalize and bit Rev for IFFT\n\t\tfor(i=0; i<fftSize; i+=1){\n\t\t\tpoke(buf_REX, peek(buf_REX, peek(buf_bitRev, i, 0), 2)/fftSize, i, 1);\n\t\t\tpoke(buf_IMX, peek(buf_IMX, peek(buf_bitRev, i, 0), 2)/fftSize, i, 1);\n\t\t}\n\t\t\n\t\t// IFFT\n\t\tfor(size=2; size<=fftSize; size*=2){\n\t\t\thalfsize = size / 2;\n\t\t\ttablestep = fftSize / size;\n\t\t\tfor(i=0; i<fftSize; i+=size){\n\t\t\t\tk = 0;\n\t\t\t\tfor(j=i; j<i+halfsize; j+=1){\t\t\n\t\t\t\t\tl = j + halfsize;\n\t\t\t\t\ttpre =  peek(buf_REX, l, 1)*peek(buf_bitRev, k, 1) - peek(buf_IMX, l, 1)*peek(buf_bitRev, k, 2);\n\t\t\t\t\ttpim =  peek(buf_REX, l, 1)*peek(buf_bitRev, k, 2) + peek(buf_IMX, l, 1)*peek(buf_bitRev, k, 1);\n\t\t\t\t\tk = k + tablestep;\n\t\t\t\t\t\n\t\t\t\t\tpoke(buf_REX, (peek(buf_REX, j, 1)-tpre), l, 1);\n\t\t\t\t\tpoke(buf_IMX, (peek(buf_IMX, j, 1)-tpim), l, 1);\n\t\t\t\t\t\n\t\t\t\t\tpoke(buf_REX, (peek(buf_REX, j, 1)+tpre), j, 1);\n\t\t\t\t\tpoke(buf_IMX, (peek(buf_IMX, j, 1)+tpim), j, 1);\n\t\t\t\t}\t\n\t\t\t}\n\t\t}\n\t}\n\treturn peek(buf_REX, mCount, 1);\n}\n\nset_winSync(buf_winSync, fc, fftSize, buf_1, buf_2, REX, IMX, wave){\n\t\n\tfftSizeHalf = fftSize/2;\n\tk = 0.25;\n\t\n\tfor(i=0; i<fftSize; i+=1){\n\t\tif(i == fftSize/4){\n\t\t\tval = TWOPI*fc*k;\r\n\t\t\tpoke(wave, val, i, 0);\n\t\t}\n\t\telse if(i<fftSizeHalf){\n\t\t\tval = (0.42 - 0.5*cos(TWOPI*i/fftSizeHalf)+0.08*cos(2*TWOPI*i/fftSizeHalf))*k*sin(TWOPI*fc*(i-fftSizeHalf/2))/(i-fftSizeHalf/2);\r\n\t\t\tpoke(wave, val, i, 0);\n\t\t}\n\t\telse{\n\t\t\tval = 0;\r\n\t\t\tpoke(wave, val, i, 0);\n\t\t}\n\t}\n\t\t\n\t// bit-rev sort\n\tfor(i=0; i<fftSize; i+=1){\n\t\tpoke(REX, peek(wave, peek(buf_2, i, 0), 0), i , 0);\n\t\tpoke(IMX, 0, i, 0);\n\t}\n\t\n\t// FFT\n\tfor(size=2; size<=fftSize; size*=2){\n\t\thalfsize = size / 2;\n\t\ttablestep = fftSize / size;\n\t\tfor(i=0; i<fftSize; i+=size){\n\t\t\tk = 0;\n\t\t\tfor(j=i; j<i+halfsize; j+=1){\t\t\n\t\t\t\tl = j + halfsize;\n\t\t\t\ttpre =  peek(REX, l, 0)*peek(buf_2, k, 1) + peek(IMX, l, 0)*peek(buf_2, k, 2);\n\t\t\t\ttpim =  -peek(REX, l, 0)*peek(buf_2, k, 2) + peek(IMX, l, 0)*peek(buf_2, k, 1);\n\t\t\t\tk = k + fftSize/size;\n\t\t\t\t\n\t\t\t\tpoke(REX, (peek(REX, j, 0)-tpre), l, 0);\n\t\t\t\tpoke(IMX, (peek(IMX, j, 0)-tpim), l, 0);\n\t\t\t\t\n\t\t\t\tpoke(REX, (peek(REX, j, 0)+tpre), j, 0);\n\t\t\t\tpoke(IMX, (peek(IMX, j, 0)+tpim), j, 0);\n\t\t\t}\t\n\t\t}\n\t}\n\t\n\tfor(i=0; i<fftSize; i+=1){\n\t\tpoke(buf_winSync, peek(REX, i, 0), i, 0);\n\t\tpoke(buf_winSync, peek(IMX, i, 0), i, 1);\n\t} \n\t\t\n\treturn 0;\n}\r\n\r\nBuffer buf_256samp(\"butterfly_256samp\");\r\nBuffer buf_512samp(\"butterfly_512samp\");\r\nBuffer buf_1024samp(\"butterfly_1024samp\");\r\nBuffer buf_2048samp(\"butterfly_2048samp\");\r\nBuffer buf_4096samp(\"butterfly_4096samp\");\r\nBuffer buf_8192samp(\"butterfly_8192samp\");\r\n\r\nParam bufSize(256);\r\nParam fc(0);\r\n\r\nData buf_winSync(samplerate*10, 2);\r\nData buf_winSyncWave(samplerate*10, 1);\r\nData buf_winSyncREX(samplerate*10, 1);\r\nData buf_winSyncIMX(samplerate*10, 1);\r\n\r\nData buf_fft_store_1(samplerate*10, 1);\r\nData buf_fft_REX_1(samplerate*10, 3); // 1ch: REX, 2ch: REXinv, 3ch: REXcnv\r\nData buf_fft_IMX_1(samplerate*10, 3); // 1ck: IMX, 2ch: IMXinv, 3ch: IMXcnv\r\n\r\nData buf_fft_store_2(samplerate*10, 1);\r\nData buf_fft_REX_2(samplerate*10, 3); // 1ch: REX, 2ch: REXinv, 3ch: REXcnv\r\nData buf_fft_IMX_2(samplerate*10, 3); // 1ck: IMX, 2ch: IMXinv, 3ch: IMXcnv\r\n\r\n\r\nDelay del_mCount(8196);\r\n\r\n// master clock\r\nmCount_1  = counter(1, 0, bufSize*2);\r\ndel_mCount.write(mCount_1);\r\nmCount_2 = del_mCount.read(bufSize);\r\n\r\n\r\nfftSize = 2*bufSize;\r\nif(change(fc) != 0){\r\n\tset_winSync(buf_winSync, fc, fftSize, buf_256samp, buf_512samp, buf_winSyncREX, buf_winSyncIMX, buf_winSyncWave);\r\n}\r\n\r\nfft_1 = fft(buf_512samp, buf_winSync, fftSize, in1, mCount_1, buf_fft_store_1, buf_fft_REX_1, buf_fft_IMX_1);\r\nfft_2 = fft(buf_512samp, buf_winSync, fftSize, in1, mCount_2, buf_fft_store_2, buf_fft_REX_2, buf_fft_IMX_2);\r\nout1 = fft_1 + fft_2;",
 									"fontface" : 0,
 									"fontname" : "Menlo",
 									"fontsize" : 12.0,
@@ -274,7 +274,7 @@
 									"numinlets" : 1,
 									"numoutlets" : 1,
 									"outlettype" : [ "" ],
-									"patching_rect" : [ 16.0, 38.0, 609.0, 659.0 ]
+									"patching_rect" : [ 16.0, 37.0, 1117.0, 1452.0 ]
 								}
 
 							}
@@ -296,7 +296,7 @@
 									"maxclass" : "newobj",
 									"numinlets" : 1,
 									"numoutlets" : 0,
-									"patching_rect" : [ 16.0, 710.0, 35.0, 22.0 ],
+									"patching_rect" : [ 16.0, 1494.0, 35.0, 22.0 ],
 									"text" : "out 1"
 								}
 
@@ -405,13 +405,13 @@
 					"patching_rect" : [ 21.0, 422.5, 48.0, 136.0 ],
 					"saved_attribute_attributes" : 					{
 						"valueof" : 						{
-							"parameter_shortname" : "live.gain~",
 							"parameter_type" : 0,
 							"parameter_unitstyle" : 4,
 							"parameter_mmin" : -70.0,
 							"parameter_longname" : "live.gain~",
 							"parameter_mmax" : 6.0,
-							"parameter_initial" : [ 0.0 ]
+							"parameter_initial" : [ 0.0 ],
+							"parameter_shortname" : "live.gain~"
 						}
 
 					}
@@ -540,9 +540,9 @@
 			}
  ],
 		"parameters" : 		{
-			"obj-38" : [ "number", "number", 0 ],
 			"obj-7" : [ "live.dial", "number", 0 ],
 			"obj-12" : [ "live.gain~", "live.gain~", 0 ],
+			"obj-38" : [ "number", "number", 0 ],
 			"parameterbanks" : 			{
 
 			}
@@ -551,16 +551,9 @@
 ,
 		"dependency_cache" : [ 			{
 				"name" : "js_butterflyIndex.js",
-				"bootpath" : "~/Documents/Max 7/Library/patch/FFT-Conv_WinSinc/code",
+				"bootpath" : "~/Documents/Max 7/Library/patch/FFT-Convolution_overlap-Add/FFT-Conv_WinSinc/code",
 				"patcherrelativepath" : "../code",
 				"type" : "TEXT",
-				"implicit" : 1
-			}
-, 			{
-				"name" : "fftConv_winSync.genexpr",
-				"bootpath" : "~/Documents/Max 7/Library/patch/FFT-Conv_WinSinc/other",
-				"patcherrelativepath" : "../other",
-				"type" : "GenX",
 				"implicit" : 1
 			}
  ],
